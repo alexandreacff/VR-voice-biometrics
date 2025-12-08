@@ -9,7 +9,6 @@ services:
     volumes:
       - ./api:/app/api
       - ./client:/app/client
-      - ./config:/app/config
       - ./data:/app/data
     restart: unless-stopped
     environment:
