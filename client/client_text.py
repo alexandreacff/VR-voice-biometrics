@@ -6,7 +6,7 @@ def main():
     print("=== Cliente de Envio de Texto ===")
 
     # Configuração do servidor FastAPI
-    base_url = 'http://127.0.0.1:5000'
+    base_url = "http://localhost:5000"
     
     try:
         # Verificar se servidor está rodando
@@ -50,7 +50,7 @@ def main():
 
     except requests.exceptions.ConnectionError:
         print("Erro: Não foi possível conectar ao servidor.")
-        print("Certifique-se de que o FastAPI está rodando em http://127.0.0.1:8000")
+        print(f"Certifique-se de que o FastAPI está rodando em {API_URL}")
     except KeyboardInterrupt:
         print("\n\nInterrompido pelo usuário. Encerrando sessão...")
         try:

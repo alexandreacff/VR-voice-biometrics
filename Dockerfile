@@ -10,6 +10,9 @@ WORKDIR /app
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY api/*.py /app/
+COPY api/ /app/
+COPY client/ /app/
+
+WORKDIR /app/api
 
 CMD ["bash"]

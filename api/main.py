@@ -13,6 +13,7 @@ from database import init_db, get_db, Session, Audio, Texto
 from embeddings import generate_session_embedding
 
 app = FastAPI()
+SAMPLE_RATE = 48000
 
 # Inicializar banco de dados
 init_db()
@@ -184,7 +185,7 @@ async def upload_audio(request: Request, file: UploadFile = File(...), db: DBSes
 
     # Converter bytes => array numpy
     audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
-    sample_rate = 22100
+    sample_rate = SAMPLE_RATE
     
     # Calcular duração do áudio (em segundos)
     duration = len(audio_array) / sample_rate
@@ -251,9 +252,9 @@ async def raw_receiver(request: Request):
 
     # Caso binário → tratar como áudio
     audio_array = np.frombuffer(data, dtype=np.int16)
-    sample_rate = 22100
+    sample_rate = SAMPLE_RATE
 
-    audio_dir = "audio_files"
+    audio_dir = "../data/audios_files"
     os.makedirs(audio_dir, exist_ok=True)
 
     filename = f"audio_{uuid.uuid4()}.wav"

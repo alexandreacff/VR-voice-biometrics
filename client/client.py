@@ -4,7 +4,7 @@ from scipy.io.wavfile import read
 import os
 
 # Configuração do servidor FastAPI
-BASE_URL = 'http://127.0.0.1:5000'
+BASE_URL = "http://localhost:5000"
 
 def send_wav_file(filepath):
     """Envia um arquivo WAV para o servidor"""
@@ -53,7 +53,7 @@ def main():
         print(f"Erro: Servidor não está respondendo em {BASE_URL}")
         return
     
-    audio_file = "../../0-0-xtts.wav"
+    audio_file = "../data/0-0-xtts.wav"
     if os.path.exists(audio_file):
         try:
             result = send_wav_file(audio_file)
