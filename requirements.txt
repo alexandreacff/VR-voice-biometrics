@@ -1,0 +1,9 @@
+fastapi==0.116.1
+uvicorn[standard]==0.34.0
+numpy
+scipy
+sqlalchemy==2.0.44
+python-multipart
+torch
+torchaudio
+requests
