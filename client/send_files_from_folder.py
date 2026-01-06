@@ -7,14 +7,12 @@ from watchdog.events import FileSystemEventHandler
 
 # Configuração do servidor FastAPI
 BASE_URL = "https://brett-unpieced-bud.ngrok-free.dev"
-WATCHED_FOLDER = "../data/input"  # Pasta a ser monitorada
+WATCHED_FOLDER = "D:\Projetos\Ale\Audios"  # Pasta a ser monitorada
 MAX_QUESTIONS = 3  # Número de perguntas a processar
 
 def send_wav_file(filepath):
     """Envia um arquivo WAV para o servidor"""
     try:
-        # Ler arquivo WAV
-        sample_rate, audio_data = read(filepath)
         
         # Abrir arquivo em modo binário para envio
         with open(filepath, 'rb') as audio_file:
@@ -87,8 +85,8 @@ def send_text_from_file(filepath):
 class FileHandler(FileSystemEventHandler):
     """Handler para processar arquivos novos na pasta monitorada"""
     
-    def __init__(self):
-        super().__init__()
+    def _init_(self):
+        super()._init_()
         self.questions_count = 0
         self.txt_processed = 0
         self.wav_processed = 0
@@ -127,6 +125,7 @@ class FileHandler(FileSystemEventHandler):
         # Processar arquivos .wav
         elif filepath.lower().endswith('.wav'):
             print(f"\n[{time.strftime('%H:%M:%S')}] Novo arquivo WAV detectado: {filename}")
+            time.sleep(0.5)
             result = send_wav_file(filepath)
             
             if result:
