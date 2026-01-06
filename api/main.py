@@ -10,10 +10,12 @@ from typing import Dict, List, Optional
 from sqlalchemy.orm import Session as DBSession
 
 from database import init_db, get_db, Session, Audio, Texto
-from embeddings import generate_session_embedding
+from embeddings import generate_session_embedding, extract_audio_features
 
 app = FastAPI()
 SAMPLE_RATE = 48000
+# Definir threshold de verificação (ajuste conforme necessário)
+THRESHOLD = 0.5
 
 # Inicializar banco de dados
 init_db()
@@ -90,9 +92,14 @@ class AccessManager:
         """Adiciona texto à sessão do IP."""
         session = self.get_or_create_session(ip, db)
         
-        # Se é o primeiro texto, definir como nome
+        # Buscar sessão no banco
         db_session = db.query(Session).filter(Session.id == session["user_id"]).first()
-        if not db_session.nome:
+        
+        # Contar quantos textos já existem
+        total_textos = db.query(Texto).filter(Texto.session_id == session["user_id"]).count()
+        
+        # Se é o SEGUNDO texto, definir como nome
+        if not db_session.nome and total_textos == 1:
             db_session.nome = texto
             session["nome"] = texto
         
@@ -321,6 +328,102 @@ async def session_info(request: Request, db: DBSession = Depends(get_db)):
     if session:
         return session
     return JSONResponse({"error": "Sessão não encontrada"}, status_code=404)
+
+
+# ================================
+#   ROTA PARA VERIFICAÇÃO DE USUÁRIO
+# ================================
+@app.post("/verify")
+async def verify_user(request: Request, file: UploadFile = File(...), db: DBSession = Depends(get_db)):
+    """
+    Verifica se o áudio pertence a um usuário registrado.
+    Compara o embedding do áudio com embeddings no banco de dados.
+    """
+    
+    client_ip = request.client.host
+    
+    try:
+        # Ler e processar áudio
+        audio_bytes = await file.read()
+        audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
+        sample_rate = SAMPLE_RATE
+        
+        # Gerar embedding do áudio recebido
+        print(f"Gerando embedding para verificação...")
+        test_embedding = extract_audio_features(audio_array, sample_rate)
+        
+        if isinstance(test_embedding, np.ndarray):
+            test_embedding = test_embedding.flatten()
+        
+        # Buscar todas as sessões fechadas (com embedding)
+        registered_sessions = db.query(Session).filter(
+            Session.closed == 1,
+            Session.embedding.isnot(None)
+        ).all()
+        
+        if not registered_sessions:
+            return JSONResponse({
+                "verified": False,
+                "message": "Nenhum usuário registrado no sistema",
+                "registered_users": 0
+            }, status_code=404)
+        
+        # Calcular similaridade com cada sessão registrada
+        matches = []
+        for session in registered_sessions:
+            stored_embedding = np.array(json.loads(session.embedding))
+            
+            # Calcular similaridade coseno
+            similarity = cosine_similarity(test_embedding, stored_embedding)
+            
+            matches.append({
+                "user_id": session.id,
+                "nome": session.nome,
+                "ip": session.ip,
+                "similarity": float(similarity),
+                "tempo_audio_total": session.tempo_audio_total,
+                "created_at": session.created_at.isoformat()
+            })
+        
+        # Ordenar por similaridade (maior para menor)
+        matches.sort(key=lambda x: x["similarity"], reverse=True)
+        
+        best_match = matches[0]
+        
+        is_verified = best_match["similarity"] >= THRESHOLD
+        
+        return {
+            "verified": is_verified,
+            "confidence": best_match["similarity"],
+            "threshold": THRESHOLD,
+            "best_match": best_match if is_verified else None,
+            "top_matches": matches[:3],  # Top 3 matches
+            "total_registered_users": len(registered_sessions)
+        }
+        
+    except Exception as e:
+        print(f"Erro na verificação: {e}")
+        return JSONResponse({
+            "error": f"Erro ao processar verificação: {str(e)}"
+        }, status_code=500)
+
+
+def cosine_similarity(embedding1: np.ndarray, embedding2: np.ndarray) -> float:
+    """
+    Calcula a similaridade coseno entre dois embeddings.
+    
+    Returns:
+        float: Similaridade entre 0 e 1 (1 = idênticos)
+    """
+    # Normalizar vetores
+    emb1_norm = embedding1 / (np.linalg.norm(embedding1) + 1e-8)
+    emb2_norm = embedding2 / (np.linalg.norm(embedding2) + 1e-8)
+    
+    # Calcular produto escalar (cosine similarity)
+    similarity = np.dot(emb1_norm, emb2_norm)
+    
+    # Converter de [-1, 1] para [0, 1]
+    return (similarity + 1) / 2
 
 
 # ================================

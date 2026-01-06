@@ -61,9 +61,12 @@ class tmp_model_test:
 model = ReDimNetModel()
 
 
-def extract_audio_features(audio_array: np.ndarray, sample_rate: int = 22100) -> List[float]:
+def extract_audio_features(audio_array: np.ndarray, sample_rate: int = 22100) -> np.ndarray:
     """
     Extrai embeddings utilizando speaker models.
+    
+    Returns:
+        np.ndarray: Array de features (embedding)
     """
 
     audio = model.load_process_audio(audio_array, sample_rate)
